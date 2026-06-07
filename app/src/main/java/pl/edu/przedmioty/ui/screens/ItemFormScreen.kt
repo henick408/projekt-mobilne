@@ -1,5 +1,9 @@
 package pl.edu.przedmioty.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,12 +26,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pl.edu.przedmioty.model.ItemDraft
 import pl.edu.przedmioty.ui.CatalogViewModel
 import pl.edu.przedmioty.ui.ItemFormViewModel
 import pl.edu.przedmioty.ui.components.Base64Image
+import pl.edu.przedmioty.util.ImageUtils
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +47,7 @@ fun ItemFormScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
 ) {
+    val context = LocalContext.current
     val catalogState by catalogViewModel.state.collectAsStateWithLifecycle()
     val formState by formViewModel.state.collectAsStateWithLifecycle()
     val existing = remember(itemId, catalogState.items) { itemId?.let { catalogViewModel.findItem(it) } }
@@ -46,6 +56,46 @@ fun ItemFormScreen(
     var description by remember(existing?.id) { mutableStateOf(existing?.description.orEmpty()) }
     var category by remember(existing?.id) { mutableStateOf(existing?.category.orEmpty()) }
     var imageBase64 by remember(existing?.id) { mutableStateOf(existing?.imageBase64.orEmpty()) }
+    var photoError by remember { mutableStateOf<String?>(null) }
+    var pendingPhotoFile by remember { mutableStateOf<File?>(null) }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val file = pendingPhotoFile
+        pendingPhotoFile = null
+        if (!success || file == null) {
+            file?.delete()
+            photoError = "Nie wykonano zdjęcia."
+        } else {
+            ImageUtils.encodeAndDelete(file)
+                .onSuccess {
+                    imageBase64 = it
+                    photoError = null
+                }
+                .onFailure { photoError = it.message ?: "Nie udało się przetworzyć zdjęcia." }
+        }
+    }
+
+    fun openCamera() {
+        val file = ImageUtils.createPrivateCameraFile(context)
+        pendingPhotoFile = file
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file,
+        )
+        takePictureLauncher.launch(uri)
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) openCamera() else photoError = "Brak zgody na użycie aparatu."
+    }
+
+    fun requestPhoto() {
+        when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
+            PackageManager.PERMISSION_GRANTED -> openCamera()
+            else -> permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -58,9 +108,10 @@ fun ItemFormScreen(
         Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             Base64Image(encoded = imageBase64, modifier = Modifier.fillMaxWidth().height(180.dp))
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = { /* camera integration coming soon */ }, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = ::requestPhoto, modifier = Modifier.fillMaxWidth()) {
                 Text(if (imageBase64.isBlank()) "Zrób zdjęcie" else "Zrób nowe zdjęcie")
             }
+            photoError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             formState.errors["image"]?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Spacer(Modifier.height(12.dp))
 
