@@ -23,15 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import pl.edu.przedmioty.ui.AppViewModel
+import pl.edu.przedmioty.ui.RegisterViewModel
 
 @Composable
 fun RegisterScreen(
-    viewModel: AppViewModel,
+    viewModel: RegisterViewModel,
     onRegistered: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val state by viewModel.authState.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 

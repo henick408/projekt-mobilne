@@ -6,11 +6,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import pl.edu.przedmioty.ui.AppViewModel
+import pl.edu.przedmioty.ui.CatalogViewModel
 
 @Composable
 fun CatalogScreen(
-    viewModel: AppViewModel,
+    viewModel: CatalogViewModel,
     onOpenItem: (String) -> Unit,
     onAddItem: () -> Unit,
     onLoggedOut: () -> Unit,
