@@ -3,6 +3,8 @@ package pl.edu.przedmioty.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import androidx.exifinterface.media.ExifInterface
 import android.util.Base64
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -26,8 +28,11 @@ object ImageUtils {
         val bitmap = BitmapFactory.decodeFile(file.absolutePath, options)
             ?: error("Nie udało się odczytać zdjęcia.")
 
-        val scaled = scaleDown(bitmap)
-        if (scaled !== bitmap) bitmap.recycle()
+        val rotated = applyExifRotation(bitmap, file)
+        if (rotated !== bitmap) bitmap.recycle()
+
+        val scaled = scaleDown(rotated)
+        if (scaled !== rotated) rotated.recycle()
 
         val bytes = ByteArrayOutputStream().use { stream ->
             scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, stream)
@@ -50,6 +55,31 @@ object ImageUtils {
             val bytes = Base64.decode(encoded, Base64.NO_WRAP)
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         }.getOrNull()
+    }
+
+    private fun applyExifRotation(bitmap: Bitmap, file: File): Bitmap {
+        val orientation = ExifInterface(file.absolutePath)
+            .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.postScale(-1f, 1f)
+            }
+            else -> return bitmap
+        }
+
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun calculateSampleSize(width: Int, height: Int): Int {

@@ -4,12 +4,14 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,8 +28,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +57,7 @@ fun ItemFormScreen(
     val catalogState by catalogViewModel.state.collectAsStateWithLifecycle()
     val formState by formViewModel.state.collectAsStateWithLifecycle()
     val existing = remember(itemId, catalogState.items) { itemId?.let { catalogViewModel.findItem(it) } }
+    var showDialog by remember { mutableStateOf(false) }
 
     var name by remember(existing?.id) { mutableStateOf(existing?.name.orEmpty()) }
     var description by remember(existing?.id) { mutableStateOf(existing?.description.orEmpty()) }
@@ -106,7 +113,25 @@ fun ItemFormScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
-            Base64Image(encoded = imageBase64, modifier = Modifier.fillMaxWidth().height(180.dp))
+            if (!showDialog) {
+                Base64Image(
+                    encoded = imageBase64,
+                    modifier = Modifier.fillMaxWidth().height(180.dp).clickable{showDialog = true},
+                    contentScale = ContentScale.Fit,
+                )
+            }
+            else {
+                Dialog(
+                    onDismissRequest = {showDialog = false},
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Base64Image(
+                        encoded = imageBase64,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = ::requestPhoto, modifier = Modifier.fillMaxWidth()) {
                 Text(if (imageBase64.isBlank()) "Zrób zdjęcie" else "Zrób nowe zdjęcie")

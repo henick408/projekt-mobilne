@@ -1,7 +1,6 @@
 package pl.edu.przedmioty.ui.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,8 +17,10 @@ fun Base64Image(
     encoded: String,
     modifier: Modifier = Modifier,
     contentDescription: String = "Zdjęcie przedmiotu",
+    contentScale: ContentScale = ContentScale.Crop
 ) {
     val bitmap = remember(encoded) { ImageUtils.decodeBase64(encoded) }
+
     if (bitmap == null) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text("Brak zdjęcia", style = MaterialTheme.typography.bodySmall)
@@ -29,7 +30,7 @@ fun Base64Image(
             bitmap = bitmap.asImageBitmap(),
             contentDescription = contentDescription,
             modifier = modifier,
-            contentScale = ContentScale.Crop,
+            contentScale = contentScale,
         )
     }
 }
