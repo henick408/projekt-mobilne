@@ -26,6 +26,10 @@ class CatalogViewModel(
 
     private var listenerRegistration: ListenerRegistration? = null
 
+    init {
+        startListening()
+    }
+
     fun startListening() {
         val userId = authRepository.currentUserId ?: return
         listenerRegistration?.remove()

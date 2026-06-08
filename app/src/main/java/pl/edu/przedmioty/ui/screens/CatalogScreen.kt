@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,11 +47,6 @@ fun CatalogScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
-
-    DisposableEffect(Unit) {
-        viewModel.startListening()
-        onDispose { viewModel.stopListening() }
-    }
 
     val visibleItems = remember(state.items, query) {
         state.items.filter { SearchMatcher.matches(it, query) }
